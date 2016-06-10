@@ -1,0 +1,190 @@
+package com.abysmel.exwebrtc.service;
+
+/**
+ * Created by Melvin Lobo on 6/8/2016.
+ */
+import com.abysmel.exwebrtc.Utils.Logger;
+import com.abysmel.exwebrtc.constants.Constants;
+import com.sinch.android.rtc.AudioController;
+import com.sinch.android.rtc.ClientRegistration;
+import com.sinch.android.rtc.Sinch;
+import com.sinch.android.rtc.SinchClient;
+import com.sinch.android.rtc.SinchClientListener;
+import com.sinch.android.rtc.SinchError;
+import com.sinch.android.rtc.video.VideoController;
+import com.sinch.android.rtc.calling.Call;
+import com.sinch.android.rtc.calling.CallClientListener;
+import android.app.Service;
+import android.content.Intent;
+import android.os.Binder;
+import android.os.IBinder;
+import android.util.Log;
+
+public class SinchService extends Service {
+
+	////////////////////////////////////// CLASS MEMBERS //////////////////////////////////////////
+	public static final String CALL_ID = "CALL_ID";
+
+	private SinchServiceInterface mSinchServiceInterface = new SinchServiceInterface();
+	private SinchClient mSinchClient;
+	private String mUserId;
+
+	private StartFailedListener mListener;
+
+	////////////////////////////////////// CLASS METHDOS //////////////////////////////////////////
+	@Override
+	public void onCreate() {
+		super.onCreate();
+	}
+
+	@Override
+	public void onDestroy() {
+		if ( mSinchClient != null && mSinchClient.isStarted() ) {
+			mSinchClient.terminateGracefully();
+		}
+		super.onDestroy();
+	}
+
+	private void start( String userName ) {
+		if ( mSinchClient == null ) {
+			mUserId = userName;
+			mSinchClient = Sinch.getSinchClientBuilder().context( getApplicationContext() ).userId( userName )
+					.applicationKey( Constants.SINCH_APP_KEY )
+					.applicationSecret( Constants.SINCH_APP_SECRET )
+					.environmentHost( Constants.SINCH_ENVIRONMENT ).build();
+
+			mSinchClient.setSupportCalling( true );
+			mSinchClient.startListeningOnActiveConnection();
+
+			mSinchClient.addSinchClientListener( new MySinchClientListener() );
+			mSinchClient.start();
+		}
+	}
+
+	private void stop() {
+		if ( mSinchClient != null ) {
+			mSinchClient.terminateGracefully();
+			mSinchClient = null;
+		}
+	}
+
+	private boolean isStarted() {
+		return (mSinchClient != null && mSinchClient.isStarted());
+	}
+
+	@Override
+	public IBinder onBind( Intent intent ) {
+		return mSinchServiceInterface;
+	}
+
+	public class SinchServiceInterface extends Binder {
+
+		public Call callUserVideo( String userId ) {
+			Logger.d( "SinchService callUserVIdeo - " + userId );
+			return mSinchClient.getCallClient().callUserVideo( userId );
+		}
+
+		public String getUserName() {
+			return mUserId;
+		}
+
+		public boolean isStarted() {
+			return SinchService.this.isStarted();
+		}
+
+		public void startClient( String userName ) {
+			start( userName );
+		}
+
+		public void stopClient() {
+			stop();
+		}
+
+		public void setStartListener( StartFailedListener listener ) {
+			mListener = listener;
+		}
+
+		public Call getCall( String callId ) {
+			return mSinchClient.getCallClient().getCall( callId );
+		}
+
+		public VideoController getVideoController() {
+			if ( ! isStarted() ) {
+				return null;
+			}
+			return mSinchClient.getVideoController();
+		}
+
+		public void setCallClientListener(CallClientListener clientListener) {
+			mSinchClient.getCallClient().addCallClientListener( clientListener );
+		}
+
+		public AudioController getAudioController() {
+			if ( ! isStarted() ) {
+				return null;
+			}
+			return mSinchClient.getAudioController();
+		}
+	}
+
+	public interface StartFailedListener {
+
+		void onStartFailed( SinchError error );
+
+		void onStarted();
+	}
+
+	private class MySinchClientListener implements SinchClientListener {
+
+		@Override
+		public void onClientFailed( SinchClient client, SinchError error ) {
+			Logger.d( "SinchClientListener onCLientFailed. Error- " + error.getMessage());
+			if ( mListener != null ) {
+				mListener.onStartFailed( error );
+			}
+			mSinchClient.terminate();
+			mSinchClient = null;
+		}
+
+		@Override
+		public void onClientStarted( SinchClient client ) {
+			Logger.d( "SinchClientListener onClientStarted - " + client.getLocalUserId());
+			if ( mListener != null ) {
+				mListener.onStarted();
+			}
+		}
+
+		@Override
+		public void onClientStopped( SinchClient client ) {
+			Logger.d( "SinchClient stopped" );
+		}
+
+		@Override
+		public void onLogMessage( int level, String area, String message ) {
+			switch (level) {
+				case Log.DEBUG:
+					Logger.d(area, message);
+					break;
+				case Log.ERROR:
+					Logger.e(area, message);
+					break;
+				case Log.INFO:
+					Logger.i(area, message);
+					break;
+				case Log.VERBOSE:
+					Logger.v(area, message);
+					break;
+				case Log.WARN:
+					Logger.w(area, message);
+					break;
+			}
+		}
+
+		@Override
+		public void onRegistrationCredentialsRequired( SinchClient client,
+		                                               ClientRegistration clientRegistration ) {
+		}
+
+	}
+
+}

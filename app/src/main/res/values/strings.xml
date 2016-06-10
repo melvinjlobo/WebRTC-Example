@@ -1,0 +1,24 @@
+<resources>
+    <string name="app_name">ExWebRTC</string>
+
+    <!-- Strings related to login -->
+    <string name="prompt_username">User Name or Number</string>
+    <string name="log_in_txt">Sign in</string>
+    <string name="error_field_required">This field is required</string>
+    <string name="offline">Offline</string>
+    <string name="online">Online</string>
+    <string name="empty_contacts">No Contacts Online</string>
+    <string name="send_hint">Type to send message</string>
+    <string name="key">pass123</string>
+    <string name="chatting_with">Chatting with : %1$s</string>
+    <string name="menu_logout">Logout</string>
+    <string name="menu_videochat">VideoChat</string>
+    <string name="menu_video_msg">VideoMessage</string>
+    <string name="username_not_received">UserName not received</string>
+    <string name="video_msg_dialog">You have received a Video from %1$s. Would you like to view it?</string>
+    <string name="not_online">%1$s is not online</string>
+    <string name="chat_req_dialog">You have received a chat request from %1$s. Would you like to chat?</string>
+    <string name="not_avail_chat">User is not available for a chat</string>
+    <string name="video_sent">Video Message Sent</string>
+
+</resources>
